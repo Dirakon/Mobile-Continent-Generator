@@ -34,10 +34,6 @@ public class MyDrawer extends View {
         int sizeY = size.y <= 0 ? 1000 : size.y;
         bitmap = Bitmap.createBitmap(sizeX, sizeY, Bitmap.Config.RGB_565);
 
-        int x = 500;
-        for (int i = 0; i < size.y; ++i) {
-            bitmap.setPixel(x, i, Color.RED);
-        }
 
         int[] colors = new int[10*15];
         Arrays.fill(colors, 0, 10*15, Color.GREEN);
@@ -47,12 +43,14 @@ public class MyDrawer extends View {
         Paint p = new Paint();
         p.setColor(Color.BLUE);
         canvas.drawCircle(80, 80, 10, p);
+        int x = 500;
+        for (int i = 0; i < size.y; ++i) {
+            bitmap.setPixel(x, i, Color.RED);
+        }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-      //  if (isInEditMode())
-      //      return;
         canvas.drawARGB(80, 102, 204, 255);
         canvas.drawBitmap(bitmap, 0, 0, paint);
     }
