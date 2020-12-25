@@ -12,8 +12,8 @@ xmlns:tools="http://schemas.android.com/tools">
 
         <com.grenterinc.continenttest.MyDrawer
             android:id="@+id/myDrawer"
-            android:layout_width="238dp"
-            android:layout_height="52dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

@@ -29,13 +29,15 @@ public class MyDrawer extends View {
         Point size = new Point();
         display.getSize(size);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        int sizeX = size.x <= 0? 500 : size.x;
-        int sizeY = size.y <= 0? 500 : size.y;
+        Log.d("MAN", Integer.toString(size.x) + '-' + size.y);
+        int sizeX = size.x <= 0 ? 1000 : size.x;
+        int sizeY = size.y <= 0 ? 1000 : size.y;
         bitmap = Bitmap.createBitmap(sizeX, sizeY, Bitmap.Config.RGB_565);
 
-        bitmap.setPixel(20, 20, Color.RED);
-        bitmap.setPixel(70, 50, Color.RED);
-        bitmap.setPixel(30, 80, Color.RED);
+        int x = 500;
+        for (int i = 0; i < size.y; ++i) {
+            bitmap.setPixel(x, i, Color.RED);
+        }
 
         int[] colors = new int[10*15];
         Arrays.fill(colors, 0, 10*15, Color.GREEN);
