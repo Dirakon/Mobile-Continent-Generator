@@ -16,7 +16,7 @@ import java.util.Arrays;
 
 public class MyDrawer extends View {
     Paint paint;
-    Bitmap bitmap;
+    public static Bitmap bitmap;
 
     public MyDrawer(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -42,11 +42,11 @@ public class MyDrawer extends View {
         Canvas canvas = new Canvas(bitmap);
         Paint p = new Paint();
         p.setColor(Color.BLUE);
-        canvas.drawCircle(80, 80, 10, p);
         int x = 500;
         for (int i = 0; i < size.y; ++i) {
             bitmap.setPixel(x, i, Color.RED);
         }
+        canvas.drawCircle(80, 80, 10, p);
     }
 
     @Override
