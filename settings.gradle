@@ -1,2 +1,3 @@
+include ':DirakonTools'
 include ':app'
 rootProject.name='ContinentTest'
