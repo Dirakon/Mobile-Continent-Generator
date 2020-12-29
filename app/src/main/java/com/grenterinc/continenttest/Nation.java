@@ -46,7 +46,7 @@ public class Nation {
                         //Set sufficient visibility
                         bord2.setDraw(setter);
 
-                        //Draw manager will do the rest
+                        //Draw manager will do the rest *COMMENTED FOR THE TIME BEING, WHY WOULD WE NEED TO DO THIS IF IT'S ALREADY IN setDraw(bool)???*
                         //  borderForUpdate.push(bord2.cells);
                         //  borderForUpdate.push(bord.cells);
                         break;

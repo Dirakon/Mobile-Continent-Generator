@@ -21,11 +21,16 @@ public class Cell {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     public static void goingAroundWithFunc9(BiFunction<Integer, Integer, Void> func, int y, int x) {
+        //Going through all the neighbouring cells (INCLUDING THE CENTRAL ONE (y,x)!!!)with lambda function with some logic
         int sizeY = world.length, sizeX = world[0].length;
+
+        //Some conservative checking
         if (x < 0)
             x += sizeX;
         else if (x >= sizeX)
             x -= sizeX;
+
+        //Classic grid stuff
         int start_y = y == 0 ? y : y - 1;
         int end_y = y == sizeY - 1 ? y : y + 1;
         int start_x = x == 0 ? x : x - 1;

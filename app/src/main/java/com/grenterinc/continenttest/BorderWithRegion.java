@@ -26,15 +26,30 @@ public class BorderWithRegion {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     public static BorderWithRegion makeBorderRiver(BorderWithRegion bord) {
+
+        //Atomic reference to reference during lambda execution
         AtomicReference<BorderWithRegion> nextOne = null;
         final int changeOwnerChance = 25;//  %
+
+        //Both regions have river now
         regions[bord.regionId].hasRiver = regions[bord.neighbourId].hasRiver = true;
         bord.riverHere = true;
-        //std::function<void(int, int)> checkFunction = [changeOwnerChance, &bord, &nextOne](int y, int x)
+
         final BorderWithRegion finalBord = bord;
-        BiFunction<Integer, Integer, Void> checkFunction = (Integer y, Integer x) -> {//LAMBDA FUNCTION VOID (INT,INT) checkFunction;
-            if ((world[y][x].borderPart && world[y][x].region != finalBord.regionId && world[y][x].region != finalBord.neighbourId && world[y][x].type == LAND && getTerrainTypeByDeepness(regions[world[y][x].region].deepness).canRiverSpawn) && (nextOne.get() == null || new Random().nextInt(100) % 100 > changeOwnerChance)) {
+
+        //Checking lambda -- will be checking each surrounding cell for every cell in the border
+        BiFunction<Integer, Integer, Void> checkFunction = (Integer y, Integer x) -> {
+            if (
+                    (world[y][x].borderPart //Cell in question is on the border
+                            && world[y][x].region != finalBord.regionId //Cell is from different border
+                            && world[y][x].region != finalBord.neighbourId//COMPLETELY different border
+                            && world[y][x].type == LAND //It's land
+                            && getTerrainTypeByDeepness(regions[world[y][x].region].deepness).canRiverSpawn) //River can spawn on that terrain
+                            && (nextOne.get() == null || new Random().nextInt(100) % 100 > changeOwnerChance) //Random is on our side
+            ) {
+                //Look for all borders from that cell's region
                 for (BorderWithRegion bored : regions[world[y][x].region].borders) {
+                    //If we find that we know one of it's border's master, we find where river spreads next~!
                     if (bored.neighbourId == finalBord.regionId || bored.neighbourId == finalBord.neighbourId) {
                         nextOne.set(bored);
                         return null;
@@ -43,6 +58,8 @@ public class BorderWithRegion {
             }
             return null;
         };
+
+        //Check all border cells for the next border for river to spread
         for (BorderCell cell : bord.cells) {
             world[cell.y][cell.x].type = RIVER;
             goingAroundWithFunc9(checkFunction, cell.y, cell.x);
@@ -53,7 +70,11 @@ public class BorderWithRegion {
                 break;
             }
         }
+
+        //Don't forget to show that this border is cell now.
         bord.riverHere = true;
+
+        //Going thru next border's master's cells
         for (BorderCell cell : bord.cells) {
             world[cell.y][cell.x].type = RIVER;
             goingAroundWithFunc9(checkFunction, cell.y, cell.x);
@@ -62,8 +83,10 @@ public class BorderWithRegion {
     }
 
     public void setDraw(boolean state) {
+        //No need to redraw if nothing changes
         if (state == isDrawn)
             return;
+
         isDrawn = state;
         if (isDrawn) {
             //Go draw it
@@ -76,6 +99,7 @@ public class BorderWithRegion {
                 var.deActivate();
             }
         }
+        //Draw manager does the rest, alright...
         borderForUpdate.push(cells);
     }
 
