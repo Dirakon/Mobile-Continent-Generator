@@ -28,8 +28,8 @@ public class BorderWithRegion {
     public static BorderWithRegion makeBorderRiver(BorderWithRegion bord) {
 
         //Atomic reference to reference during lambda execution
-        AtomicReference<BorderWithRegion> nextOne = null;
-        final int changeOwnerChance = 25;//  %
+        AtomicReference<BorderWithRegion> nextOne = new AtomicReference<BorderWithRegion>();
+        final int changeOwnerChance = 25;//  const % to change next river's region for randomness
 
         //Both regions have river now
         regions[bord.regionId].hasRiver = regions[bord.neighbourId].hasRiver = true;

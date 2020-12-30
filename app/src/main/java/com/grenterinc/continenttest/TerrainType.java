@@ -1,5 +1,10 @@
 package com.grenterinc.continenttest;
 
+import android.graphics.Color;
+import android.os.Build;
+
+import androidx.annotation.RequiresApi;
+
 //Terrain description
 public class TerrainType {
     public static TerrainType[] terrainTypes = new TerrainType[]{
@@ -138,6 +143,11 @@ public class TerrainType {
     public float livability;
     public float r, g, b;
     public String name;
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public int getColor() {
+        return Color.rgb(r, g, b);
+    }
 
     public TerrainType(int chanceToSpawn, int minSize, int maxSize, boolean canRiverSpawn, boolean canBeSmoothed, boolean canSmoothOthers, float smoothingTreshold, float minMinEquatorDistance, float maxMinEquatorDistance, float minMaxEquatorDistance, float maxMaxEquatorDistance, float livability, float r, float g, float b, float riverLivabilityIncrease, String name) {
         this.chanceToSpawn = chanceToSpawn;
