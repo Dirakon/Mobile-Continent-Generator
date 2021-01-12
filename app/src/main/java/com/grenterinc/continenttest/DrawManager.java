@@ -12,7 +12,6 @@ import static com.grenterinc.continenttest.Cell.DEBUG_DOT;
 import static com.grenterinc.continenttest.Cell.LAND;
 import static com.grenterinc.continenttest.Cell.RIVER;
 import static com.grenterinc.continenttest.Cell.WATER;
-import static com.grenterinc.continenttest.Cell.world;
 import static com.grenterinc.continenttest.Generator.moreDiv;
 import static com.grenterinc.continenttest.Region.regions;
 import static com.grenterinc.continenttest.TerrainType.getTerrainTypeByDeepness;
@@ -30,37 +29,38 @@ public class DrawManager {
             borderColor = Color.BLACK;
 
     private static void drawCell(int x, int y, int sizeX) {
+        int id = Cell.getIdByCoords(y, x);
         int color = 0;
-        if (world[y][x].debug) {
+        if (Cell.getDebugOfCell(id)) {
             color = debugColor;
-        } else if (world[y][x].type == RIVER && drawType != DRAW_REGIONS) {
+        } else if (Cell.getTypeOfCell(id) == RIVER && drawType != DRAW_REGIONS) {
             color = riverColor;
-        } else if (world[y][x].visibleBorder && drawBorders) {
+        } else if (Cell.getVisibleBorder(id) && drawBorders) {
             color = borderColor;
-        } else if (world[y][x].type == DEBUG_DOT || world[y][x].region == -1 || drawType == DRAW_TERRAIN || (drawType == DRAW_COUNTRIES && (regions[world[y][x].region].father == null))) {
-            int type = world[y][x].type;
+        } else if (Cell.getTypeOfCell(id) == DEBUG_DOT || Cell.getRegionOfCell(id) == -1 || drawType == DRAW_TERRAIN || (drawType == DRAW_COUNTRIES && (regions[Cell.getRegionOfCell(id)].father == null))) {
+            int type = Cell.getTypeOfCell(id);
             switch (type) {
                 case WATER:
-                    color = Color.rgb(0f, 0f, (float) (1 - 0.1 * Generator.moreDiv * regions[world[y][x].region].deepness));
+                    color = Color.rgb(0f, 0f, (float) (1 - 0.1 * Generator.moreDiv * regions[Cell.getRegionOfCell(id)].deepness));
                     break;
                 case LAND:
-                    color = getTerrainTypeByDeepness(regions[world[y][x].region].deepness).getColor();
+                    color = getTerrainTypeByDeepness(regions[Cell.getRegionOfCell(id)].deepness).getColor();
                     break;
             }
         } else if (drawType == DRAW_REGIONS) {
-            int regId = world[y][x].region;
+            int regId = Cell.getRegionOfCell(id);
             color = Color.rgb(regions[regId].colorR, regions[regId].colorG, regions[regId].colorB);
 
         } else if (drawType == DRAW_COUNTRIES) {
 
-            int regId = world[y][x].region;
+            int regId = Cell.getRegionOfCell(id);
             Region reg = regions[regId];
             color = Color.rgb(reg.father.colorR, reg.father.colorG, reg.father.colorB);
         } else {
-            int regId = world[y][x].region;
+            int regId = Cell.getRegionOfCell(id);
             Region reg = regions[regId];
-            if (world[y][x].type == WATER) {
-                color = Color.rgb(0, 0, (float) (1 - 0.1 * moreDiv * regions[world[y][x].region].deepness));
+            if (Cell.getTypeOfCell(id) == WATER) {
+                color = Color.rgb(0, 0, (float) (1 - 0.1 * moreDiv * regions[Cell.getRegionOfCell(id)].deepness));
             } else {
                 color = Color.rgb(1.0f - reg.livability / 3.5f, reg.livability / 3.5f, 0f);
 
