@@ -57,14 +57,14 @@ public class MainActivity extends AppCompatActivity {
         Point size = new Point();
         display.getSize(size);
         Log.d("MAN", Integer.toString(size.x) + '-' + size.y);
-        int sizeX = size.x <= 0 ? 1000 : size.x;
-        int sizeY = size.y <= 0 ? 1000 : size.y;
+        sizeX = size.x <= 0 ? 1000 : size.x * 4 / 5;
+        sizeY = size.y <= 0 ? 1000 : size.y * 4 / 5;
 
 
         setContentView(R.layout.activity_main);
         final Button button = findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.N)
+            @RequiresApi(api = Build.VERSION_CODES.O)
             public void onClick(View v) {
                 ArrayList<Generator.GenerationInniter> sampleData = new ArrayList<Generator.GenerationInniter>();
                 sampleData.add(new Generator.GenerationInniter(defminContinentSeeds, defmaxContinentSeeds, defminContinentProcent, defmaxContinentProcent, WATER, LAND)); //WATER -> LAND (continents)

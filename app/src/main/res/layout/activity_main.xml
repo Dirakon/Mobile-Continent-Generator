@@ -20,6 +20,15 @@ xmlns:tools="http://schemas.android.com/tools">
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:visibility="visible" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="124dp"
+            android:layout_height="0dp"
+            android:text="Button"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="@+id/myDrawer"
+            app:layout_constraintStart_toStartOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -28,13 +37,5 @@ xmlns:tools="http://schemas.android.com/tools">
         android:layout_height="match_parent"
         android:clickable="false">
         <!--  Place the objects you want on the top here -->
-        <Button
-            android:id="@+id/button"
-            android:layout_width="124dp"
-            android:layout_height="66dp"
-            android:text="Button"
-            android:visibility="visible"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

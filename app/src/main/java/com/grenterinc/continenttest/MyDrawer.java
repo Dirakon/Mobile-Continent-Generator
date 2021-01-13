@@ -17,10 +17,10 @@ import java.util.Arrays;
 public class MyDrawer extends View {
     Paint paint;
     public static Bitmap bitmap;
-
+    public static MyDrawer singelton;
     public MyDrawer(Context context, AttributeSet attrs) {
         super(context, attrs);
-
+        singelton = this;
       //  if (isInEditMode())
     //        return;
       Log.d("MAN","man,here");
@@ -51,6 +51,8 @@ public class MyDrawer extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        MainActivity.Debug("onDraw activated!");
+
         canvas.drawARGB(80, 102, 204, 255);
         canvas.drawBitmap(bitmap, 0, 0, paint);
     }

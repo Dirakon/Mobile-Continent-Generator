@@ -1,6 +1,10 @@
 package com.grenterinc.continenttest;
 
+import android.os.Build;
+
 import java.util.ArrayList;
+
+import androidx.annotation.RequiresApi;
 
 import static com.grenterinc.continenttest.DrawManager.DRAW_COUNTRIES;
 import static com.grenterinc.continenttest.DrawManager.drawType;
@@ -21,6 +25,7 @@ public class Nation {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public void annex(Region region) {
 
         if (region.father != null) {
