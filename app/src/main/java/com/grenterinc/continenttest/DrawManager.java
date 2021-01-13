@@ -39,7 +39,11 @@ public class DrawManager {
         }
 
         MyDrawer.bitmap.setPixel((x + horizontalOffset) % sizeX, y, color);
-        MyDrawer.singelton.invalidate();
+
+        if (Cell.getRegionOfCell(id) != -1 && Cell.getTypeOfCell(id) != WATER) {
+            Region reg = regions[Cell.getRegionOfCell(id)];
+            MyDrawer.bitmap.setPixel((x + horizontalOffset) % sizeX, y, Color.rgb(reg.colorR, reg.colorG, reg.colorB));
+        }
         if (true)
             return;
         if (Cell.getDebugOfCell(id)) {
@@ -90,22 +94,26 @@ public class DrawManager {
                     drawCell(x, y, sizeX);
                 }
             }
+            MyDrawer.singelton.invalidate();
         } else {
             while (!cellsForUpdate.empty()) {
                 Point point = cellsForUpdate.pop();
                 drawCell(point.x, point.y, sizeX);
+                MyDrawer.singelton.invalidate();
             }
             while (!regionsForUpdate.empty()) {
                 Region reg = regionsForUpdate.pop();
                 for (Point point : reg.cells) {
                     drawCell(point.x, point.y, sizeX);
                 }
+                MyDrawer.singelton.invalidate();
             }
             while (!borderForUpdate.empty()) {
                 ArrayList<BorderCell> bord = borderForUpdate.pop();
                 for (BorderCell point : bord) {
                     drawCell(point.x, point.y, sizeX);
                 }
+                MyDrawer.singelton.invalidate();
             }
         }
     }

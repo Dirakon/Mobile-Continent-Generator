@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class Region {
     public static Region[] regions;
+    public static Region[] landRegions;
     public Nation father = null;
     public Point l, r, u, d;
     public Point center;
