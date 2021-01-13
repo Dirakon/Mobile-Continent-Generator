@@ -5,10 +5,13 @@ import android.util.MutableInt;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Stack;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 import androidx.annotation.RequiresApi;
+
+import static java.lang.Math.sqrt;
 
 
 public class Generator {
@@ -16,6 +19,7 @@ public class Generator {
     private static final int worldSmoothingTreshold = 4;//1...7, but recommended to leave at 4.
     public static int moreDiv = 1; //How much seas are more rare than land regions. The more number is, less sea regions there are.
     private static int cwspMAX = 8; //1...8, really takes much memory, but (probably) the effect is worth it? Can be around 3 if there are memory problems.
+    private static final float amountOfRegionsProcent = 0.03f;//How much regions. The more number is, less regions there are.
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     static private void AddToAllArrays(int x, int y, MutableInt ptr,
@@ -44,7 +48,6 @@ public class Generator {
             int localArrId = GenerationBufferData.getArrId(pointY, pointX) + num;
             GenerationBufferData.setArr(localArrId, curPtr);
             NewAgeList.setFirstAsSecond(curPtr, ptr.value);
-            //  newAgeList[curPtr] = newAgeList[ptr];
         }
         GenerationBufferData.setPtr(fPtrId, 0);
 
@@ -102,29 +105,35 @@ public class Generator {
         };
         for (Point seed : seedsList) {
             clearPTRs(newAgePtr, sizeY, sizeX);
+
+            // Get amount of cells that this 'continent' (or whatever) will take
             int landAmount = (int) (Std.inBetweenTwoFloats(inniter.minProc, inniter.maxProc) * (sizeX * sizeY));
             int orx = seed.x;
             int ory = seed.y;
             int idf = Cell.getIdByCoords(ory, orx);
+
+            //Place our starting cell's neighbours into our list
             Cell.setTypeOfCell(idf, inniter.typeToTransformFrom);
             AddToAllArrays(orx, ory, newAgePtr, boolIfOther, makeThis);
 
+            // And start the regular iteration until either we have no room or we did enough
             for (int curLand = 0; curLand < landAmount && newAgePtr.value != 0; ++curLand) {
                 int pol = new Random().nextInt(newAgePtr.value);
                 AddToAllArrays(NewAgeList.getXs(pol), NewAgeList.getYs(pol), newAgePtr, boolIfOther, makeThis);
 
             }
-            /*if (newAgePtr.value == 0){
-                MainActivity.Debug("Run out of place to put anything more...");
-            }else{
-                MainActivity.Debug("Still have place for " + Integer.toString(newAgePtr.value));
-            }*/
+
         }
     }
 
     static private void PlaceSeeds(ArrayList<Point> seedsList, GenerationInniter inniter) {
-        //  int cura = pointsList.size();
+
         int continentSeeds = Std.inBetweenTwoInts(inniter.minSeeds, inniter.maxSeeds);
+
+        //Inserts <continentSeeds> random points that fit the description in <inniter> into <seedsList>
+
+        // WARNING! Will be an infinite loops if there are no cells (or few) that fit the description
+
         for (int i = 0; i < continentSeeds; ++i) {
             int y, x;
             int ider;
@@ -144,13 +153,19 @@ public class Generator {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private static void Smoothing(MutableInt newAgePtr, int sizeY, int sizeX) {
+
+        //We need all 8 neighbouring cells around to be checked in order for smoothing to be effective
+
         int safeSWCP = cwspMAX;
         cwspMAX = 8;
 
         clearPTRs(newAgePtr, sizeY, sizeX);
+
         MainActivity.Debug("Smoothing mapping...\n");
         for (int y = 0; y < sizeY; ++y) {
             for (int x = 0; x < sizeX; ++x) {
+
+                // Counter of neighbouring cells that differ from our cell
                 AtomicReference<Integer> counterRef = new AtomicReference<Integer>(0);
                 int finalID = Cell.getIdByCoords(y, x);
                 BiFunction<Integer, Integer, Void> func = (Integer yf, Integer xf) -> {
@@ -160,10 +175,15 @@ public class Generator {
                     }
                     return null;
                 };
+
+                // Actually count different cells
                 Cell.goingAroundWithFunc9(func, y, x);
+
                 int counter = counterRef.get();
                 int genBufDataPtrId = GenerationBufferData.getPTRid(y, x);
                 int genBufDataREALPTR = GenerationBufferData.getPtr(genBufDataPtrId);
+
+                // If there are different cells, we add this cell to our list, for future smoothing
                 if (counter > 0 && genBufDataREALPTR != cwspMAX) {
                     NewAgeList.setYs(newAgePtr.value, y);
                     NewAgeList.setNum(newAgePtr.value, genBufDataREALPTR);
@@ -177,6 +197,8 @@ public class Generator {
         }
         MainActivity.Debug("Actual smoothing...\n");
         while (newAgePtr.value != 0) {
+
+            //Pick a random cell
             int ran = new Random().nextInt(newAgePtr.value);
             int ranId = Cell.getIdByCoords(NewAgeList.getYs(ran), NewAgeList.getXs(ran));
             AtomicReference<Integer> counterRef = new AtomicReference<Integer>(0);
@@ -188,9 +210,16 @@ public class Generator {
                 }
                 return null;
             };
-            Cell.goingAroundWithFunc9(func, NewAgeList.getYs(ran), NewAgeList.getXs(ran));// newAgeList[ran].point.y, newAgeList[ran].point.x);
+
+            //Count all the different cells
+            Cell.goingAroundWithFunc9(func, NewAgeList.getYs(ran), NewAgeList.getXs(ran));
             int counter = counterRef.get();
+
+            //If there are enough do be smoothed,
             if (counter > worldSmoothingTreshold) {
+
+                //Change the type
+
                 Cell.setTypeOfCell(ranId, 1 - Cell.getTypeOfCell(ranId));
 
                 BiFunction<Integer, Integer, Boolean> check = (Integer cell, Integer cell2) -> {
@@ -200,15 +229,19 @@ public class Generator {
                     return null;
                 };
 
-                //cl++;
+                // Add all neighbours that are under suspicion into our list
+
                 AddToAllArrays(NewAgeList.getXs(ran), NewAgeList.getYs(ran), newAgePtr, check, make);
             } else {
+
+                // Else delete this cell from list and from all the neighbours' lists
+
                 int y = NewAgeList.getYs(ran), x = NewAgeList.getXs(ran);
                 int curGenBufPtrId = GenerationBufferData.getPTRid(y, x);
                 int curGenBufREALPTR = GenerationBufferData.getPtr(curGenBufPtrId);
                 int curGenBufArrPTR = GenerationBufferData.getArrId(curGenBufPtrId);
                 for (int i = 0; i < curGenBufREALPTR; ++i) {
-                    int curPtr = GenerationBufferData.getArr(curGenBufArrPTR + i);//dArrayOfLists[y][x].arr[i];
+                    int curPtr = GenerationBufferData.getArr(curGenBufArrPTR + i);
                     --newAgePtr.value;
                     int yr = NewAgeList.getYs(newAgePtr.value), xr = NewAgeList.getXs(newAgePtr.value), num = NewAgeList.getNum(newAgePtr.value);
                     int newArrId = GenerationBufferData.getArrId(yr, xr) + num;
@@ -220,7 +253,108 @@ public class Generator {
         }
 
 
+        // Return this 'magical' value to it's assigned state
         cwspMAX = safeSWCP;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static private void PlaceRegionSeeds(int sizeY, int sizeX, MutableInt newAgePtr, ArrayList<Point> regionSeeds) {
+        int toSkip = (int) (sqrt(sizeX * sizeY) * amountOfRegionsProcent);
+        for (int y = toSkip; y < sizeY; y += toSkip) {
+            for (int x = toSkip; x < sizeX; x += toSkip) {
+                int yxId = Cell.getIdByCoords(y, x);
+                if (Cell.getTypeOfCell(yxId) == Cell.WATER) {
+                    if ((x / toSkip) % moreDiv != 0 || (y / toSkip) % moreDiv != 0) {
+                        continue;
+                    }
+                }
+                DrawManager.cellsForUpdate.push(new Point(x, y));
+                Cell.setRegionOfCell(yxId, regionSeeds.size());
+                regionSeeds.add(new Point(x, y));
+                BiFunction<Integer, Integer, Boolean> firstCheck = (Integer thisCell, Integer whoAdded) -> {
+                    return whoAdded == -1 || (Cell.getTypeOfCell(whoAdded) == Cell.getTypeOfCell(thisCell) && Cell.getRegionOfCell(thisCell) == -1);
+                };
+                BiFunction<Integer, Integer, Void> firstMake = (Integer thisCell, Integer whoAdded) -> {
+                    return null;
+                };
+                AddToAllArrays(x, y, newAgePtr, firstCheck, firstMake);
+            }
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static private void GrowingRegionSeeds(MutableInt newAgePtr, ArrayList<Point> regionSeeds) {
+        BiFunction<Integer, Integer, Boolean> checkFunc = (Integer thisCell, Integer whoAdded) -> {
+            return whoAdded == -1 || (Cell.getTypeOfCell(whoAdded) == Cell.getTypeOfCell(thisCell) && Cell.getRegionOfCell(thisCell) == -1);
+        };
+        BiFunction<Integer, Integer, Void> makeFunc = (Integer thisCell, Integer whoAdded) -> {
+            Cell.setRegionOfCell(thisCell, Cell.getRegionOfCell(whoAdded));
+            return null;
+        };
+        while (newAgePtr.value != 0) {
+            int pol = new Random().nextInt(newAgePtr.value);
+
+            AddToAllArrays(NewAgeList.getXs(pol), NewAgeList.getYs(pol), newAgePtr, checkFunc, makeFunc, NewAgeList.getWhoAdded(pol));
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static private void AddMissingRegions(int sizeY, int sizeX, ArrayList<Point> regionSeeds) {
+        for (int y = 0; y < sizeY; ++y) {
+            for (int x = 0; x < sizeX; ++x) {
+                int yxId = Cell.getIdByCoords(y, x);
+                if (Cell.getRegionOfCell(yxId) == -1) {
+                    Stack<Point> ava = new Stack<Point>();
+                    ava.push(new Point(x, y));
+                    int reg = regionSeeds.size();
+                    regionSeeds.add(ava.peek());
+                    while (!ava.empty()) {
+                        Point p = ava.pop();
+                        int pointId = Cell.getIdByCoords(p.y, p.x);
+                        Cell.setRegionOfCell(pointId, reg);
+                        BiFunction<Integer, Integer, Void> func = (Integer yf, Integer xf) -> {
+                            int yfxfId = Cell.getIdByCoords(yf, xf);
+                            if (Cell.getRegionOfCell(yfxfId) == -1 && Cell.getTypeOfCell(yfxfId) == Cell.getTypeOfCell(pointId)) {
+                                ava.push(new Point(xf, yf));
+                                Cell.setRegionOfCell(yfxfId, reg);
+                            }
+                            return null;
+                        };
+                        Cell.goingAroundWithFunc9(func, p.y, p.x);
+                    }
+                }
+            }
+        }
+        DrawManager.updateAll = true;
+    }
+
+    static private void SmoothRegions() {
+        // TODO
+    }
+
+
+    static private void CreateRegionData() {
+        // TODO
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private static void DivideIntoRegions(int sizeY, int sizeX, MutableInt newAgePtr) {
+
+        MainActivity.Debug("Placing region seeds...");
+        ArrayList<Point> regionSeeds = new ArrayList<Point>();
+        PlaceRegionSeeds(sizeY, sizeX, newAgePtr, regionSeeds);
+
+        MainActivity.Debug("Growing region seeds...");
+        GrowingRegionSeeds(newAgePtr, regionSeeds);
+
+        MainActivity.Debug("Adding missing regions...");
+        AddMissingRegions(sizeY, sizeX, regionSeeds);
+
+        MainActivity.Debug("Smoothing regions");
+        SmoothRegions();
+
+        MainActivity.Debug("Creating region data");
+        CreateRegionData();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -229,13 +363,17 @@ public class Generator {
         MainActivity.Debug("\n\n\n-------------------WORLD CREATION: START-------------------\n");
 
         MainActivity.Debug("Creating and deleting necessary things...\n");
+
         DrawManager.horizontalOffset = 0;
+
         Cell.initWorld(sizeY, sizeX);
+
+        //All cells are to be redrawn
         DrawManager.updateAll = true;
 
         MainActivity.Debug("Creating super big arrays...\n");
-        // CoolWSPointer[][] dArrayOfList = new CoolWSPointer[sizeY][];
-        //PointNNumInCWSP[] newAgeList = new PointNNumInCWSP[sizeX * sizeY * 8];
+
+        //Generation initialize
         NewAgeList.initNewAgeList(sizeX * sizeY * 8);
         MutableInt newAgePtr = new MutableInt(0);
         GenerationBufferData.initGenerationBufferData(sizeY, sizeX);
@@ -249,6 +387,7 @@ public class Generator {
             GrowSeeds(seeds, inniter, newAgePtr, sizeY, sizeX);
         }
         Smoothing(newAgePtr, sizeY, sizeX);
+        DivideIntoRegions(sizeY, sizeX, newAgePtr);
     }
 
 
