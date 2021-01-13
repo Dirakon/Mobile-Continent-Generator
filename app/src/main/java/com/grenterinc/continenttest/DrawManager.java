@@ -31,6 +31,17 @@ public class DrawManager {
     private static void drawCell(int x, int y, int sizeX) {
         int id = Cell.getIdByCoords(y, x);
         int color = 0;
+
+        if (Cell.getTypeOfCell(id) == WATER) {
+            color = Color.BLUE;
+        } else {
+            color = Color.GREEN;
+        }
+
+        MyDrawer.bitmap.setPixel((x + horizontalOffset) % sizeX, y, color);
+        MyDrawer.singelton.invalidate();
+        if (true)
+            return;
         if (Cell.getDebugOfCell(id)) {
             color = debugColor;
         } else if (Cell.getTypeOfCell(id) == RIVER && drawType != DRAW_REGIONS) {

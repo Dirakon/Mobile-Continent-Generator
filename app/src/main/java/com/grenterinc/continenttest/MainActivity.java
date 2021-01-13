@@ -57,8 +57,8 @@ public class MainActivity extends AppCompatActivity {
         Point size = new Point();
         display.getSize(size);
         Log.d("MAN", Integer.toString(size.x) + '-' + size.y);
-        int sizeX = size.x <= 0 ? 1000 : size.x / 2;
-        int sizeY = size.y <= 0 ? 1000 : size.y / 2;
+        sizeX = size.x <= 0 ? 1000 : size.x * 4 / 5;
+        sizeY = size.y <= 0 ? 1000 : size.y * 4 / 5;
 
 
         setContentView(R.layout.activity_main);

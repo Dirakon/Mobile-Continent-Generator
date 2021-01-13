@@ -15,7 +15,7 @@ public class Generator {
 
     private static final int worldSmoothingTreshold = 4;//1...7, but recommended to leave at 4.
     public static int moreDiv = 1; //How much seas are more rare than land regions. The more number is, less sea regions there are.
-    private static int cwspMAX = 5; //1...8, really takes much memory, but (probably) the effect is worth it? Can be around 3 if there are memory problems.
+    private static int cwspMAX = 8; //1...8, really takes much memory, but (probably) the effect is worth it? Can be around 3 if there are memory problems.
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     static private void AddToAllArrays(int x, int y, MutableInt ptr,
@@ -35,7 +35,7 @@ public class Generator {
         int fPtrId = GenerationBufferData.getPTRid(y, x);
         int fPtr = GenerationBufferData.getPtr(fPtrId);
         int fArrId = GenerationBufferData.getArrId(fPtrId);
-        for (int i = fArrId; i < fPtr; ++i) {
+        for (int i = fArrId; i < fPtr + fArrId; ++i) {
             int curPtr = GenerationBufferData.getArr(i);
             ptr.value -= 1;
             int pointY = NewAgeList.getYs(ptr.value);
@@ -114,6 +114,11 @@ public class Generator {
                 AddToAllArrays(NewAgeList.getXs(pol), NewAgeList.getYs(pol), newAgePtr, boolIfOther, makeThis);
 
             }
+            /*if (newAgePtr.value == 0){
+                MainActivity.Debug("Run out of place to put anything more...");
+            }else{
+                MainActivity.Debug("Still have place for " + Integer.toString(newAgePtr.value));
+            }*/
         }
     }
 
@@ -203,7 +208,7 @@ public class Generator {
                 int curGenBufREALPTR = GenerationBufferData.getPtr(curGenBufPtrId);
                 int curGenBufArrPTR = GenerationBufferData.getArrId(curGenBufPtrId);
                 for (int i = 0; i < curGenBufREALPTR; ++i) {
-                    int curPtr = GenerationBufferData.getArr(curGenBufArrPTR + curGenBufREALPTR);//dArrayOfLists[y][x].arr[i];
+                    int curPtr = GenerationBufferData.getArr(curGenBufArrPTR + i);//dArrayOfLists[y][x].arr[i];
                     --newAgePtr.value;
                     int yr = NewAgeList.getYs(newAgePtr.value), xr = NewAgeList.getXs(newAgePtr.value), num = NewAgeList.getNum(newAgePtr.value);
                     int newArrId = GenerationBufferData.getArrId(yr, xr) + num;
