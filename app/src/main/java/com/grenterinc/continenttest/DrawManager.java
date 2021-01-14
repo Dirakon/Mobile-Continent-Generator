@@ -19,7 +19,7 @@ import static com.grenterinc.continenttest.TerrainType.getTerrainTypeByDeepness;
 @RequiresApi(api = Build.VERSION_CODES.O)
 public class DrawManager {
     public static final int DRAW_TERRAIN = 0, DRAW_REGIONS = 1, DRAW_COUNTRIES = 2, DRAW_LIVABILITY = 3;
-    public static int drawType = DRAW_COUNTRIES;
+    public static int drawType = DRAW_TERRAIN;
     public static Stack<Point> cellsForUpdate = new Stack<Point>();
     public static Stack<Region> regionsForUpdate = new Stack<Region>();
     public static Stack<ArrayList<BorderCell>> borderForUpdate = new Stack<ArrayList<BorderCell>>();
@@ -31,7 +31,7 @@ public class DrawManager {
     private static void drawCell(int x, int y, int sizeX) {
         int id = Cell.getIdByCoords(y, x);
         int color = 0;
-
+/*
         if (Cell.getTypeOfCell(id) == WATER) {
             color = Color.BLUE;
         } else {
@@ -39,9 +39,13 @@ public class DrawManager {
         }
 
         MyDrawer.bitmap.setPixel((x + horizontalOffset) % sizeX, y, color);
-        MyDrawer.singelton.invalidate();
+
+        if (Cell.getRegionOfCell(id) != -1 && Cell.getTypeOfCell(id) != WATER) {
+            Region reg = regions[Cell.getRegionOfCell(id)];
+            MyDrawer.bitmap.setPixel((x + horizontalOffset) % sizeX, y, Color.rgb(reg.colorR, reg.colorG, reg.colorB));
+        }
         if (true)
-            return;
+            return;*/
         if (Cell.getDebugOfCell(id)) {
             color = debugColor;
         } else if (Cell.getTypeOfCell(id) == RIVER && drawType != DRAW_REGIONS) {
@@ -90,22 +94,26 @@ public class DrawManager {
                     drawCell(x, y, sizeX);
                 }
             }
+            MyDrawer.singelton.invalidate();
         } else {
             while (!cellsForUpdate.empty()) {
                 Point point = cellsForUpdate.pop();
                 drawCell(point.x, point.y, sizeX);
+                MyDrawer.singelton.invalidate();
             }
             while (!regionsForUpdate.empty()) {
                 Region reg = regionsForUpdate.pop();
                 for (Point point : reg.cells) {
                     drawCell(point.x, point.y, sizeX);
                 }
+                MyDrawer.singelton.invalidate();
             }
             while (!borderForUpdate.empty()) {
                 ArrayList<BorderCell> bord = borderForUpdate.pop();
                 for (BorderCell point : bord) {
                     drawCell(point.x, point.y, sizeX);
                 }
+                MyDrawer.singelton.invalidate();
             }
         }
     }
