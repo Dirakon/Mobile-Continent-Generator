@@ -5,6 +5,7 @@ import android.util.MutableInt;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.Random;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,7 +19,11 @@ import static com.grenterinc.continenttest.Cell.WATER;
 import static com.grenterinc.continenttest.Cell.goingAroundWithFunc9;
 import static com.grenterinc.continenttest.Region.regions;
 import static com.grenterinc.continenttest.Std.inBetweenTwoFloats;
+import static com.grenterinc.continenttest.Std.inBetweenTwoInts;
+import static com.grenterinc.continenttest.TerrainType.PLANE;
+import static com.grenterinc.continenttest.TerrainType.terrainTypes;
 import static java.lang.Math.sqrt;
+import static java.lang.StrictMath.abs;
 
 
 public class Generator {
@@ -27,6 +32,11 @@ public class Generator {
     public static int moreDiv = 1; //How much seas are more rare than land regions. The more number is, less sea regions there are.
     private static int cwspMAX = 8; //1...8, really takes much memory, but (probably) the effect is worth it? Can be around 3 if there are memory problems.
     private static final float amountOfRegionsProcent = 0.03f;//How much regions. The more number is, less regions there are.
+    private static final int terrainTypeSmoothingCycles = 3;
+    private static final int regionSmoothingCycles = 3; //doesn't really matter that much, better leave at 3, but not less.
+    private static final int regionSmoothingTreshold = 4; //1...7, but recommended to leave at 4.
+    private static final int chanceForLandToBeRiverSpawn = 10;
+    private static final int minRiverSize = 4, maxRiverSize = 18; //
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     static private void AddToAllArrays(int x, int y, MutableInt ptr,
@@ -135,7 +145,7 @@ public class Generator {
 
     static private void PlaceSeeds(ArrayList<Point> seedsList, GenerationInniter inniter) {
 
-        int continentSeeds = Std.inBetweenTwoInts(inniter.minSeeds, inniter.maxSeeds);
+        int continentSeeds = inBetweenTwoInts(inniter.minSeeds, inniter.maxSeeds);
 
         //Inserts <continentSeeds> random points that fit the description in <inniter> into <seedsList>
 
@@ -335,8 +345,54 @@ public class Generator {
         DrawManager.updateAll = true;
     }
 
-    static private void SmoothRegions() {
-        // TODO
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static private void SmoothRegions(int sizeY, int sizeX) {
+        for (int i = 0; i < regionSmoothingCycles; ++i) {
+            MainActivity.Debug("Smoothing cycle #" + (i + 1) + "...\n");
+            for (int y = 0; y < sizeY; ++y) {
+                for (int x = 0; x < sizeX; ++x) {
+                    final AtomicInteger[] counterDifType = {new AtomicInteger()};
+                    final AtomicInteger[] counterOurCountry = {new AtomicInteger()};
+                    final int[] bestCountry = {-1};
+                    final int[] ptr = {0};
+                    int[] otherCountries = new int[8], theirAmounts = new int[8];
+                    int yxId = Cell.getIdByCoords(y, x);
+                    BiFunction<Integer, Integer, Void> func = (Integer yf, Integer xf) -> {
+                        int yfxfId = Cell.getIdByCoords(yf, xf);
+                        if (Cell.getTypeOfCell(yfxfId) == 1 - Cell.getTypeOfCell(yxId)) {
+                            counterDifType[0].getAndIncrement();
+                        } else if (Cell.getRegionOfCell(yfxfId) == Cell.getRegionOfCell(yxId)) {
+                            counterOurCountry[0].getAndIncrement();
+                        } else {
+                            boolean weInIt = false;
+                            for (int jj = 0; jj < ptr[0]; ++jj) {
+                                if (otherCountries[jj] == Cell.getRegionOfCell(yfxfId)) {
+                                    weInIt = true;
+                                    theirAmounts[jj]++;
+                                    if (bestCountry[0] == -1 || theirAmounts[jj] > theirAmounts[bestCountry[0]]) {
+                                        bestCountry[0] = jj;
+                                    }
+                                    break;
+                                }
+                            }
+                            if (!weInIt) {
+                                otherCountries[ptr[0]] = Cell.getRegionOfCell(yfxfId);
+                                if (bestCountry[0] == -1) {
+                                    bestCountry[0] = ptr[0];
+
+                                }
+                                theirAmounts[ptr[0]++] = 1;
+                            }
+                        }
+                        return null;
+                    };
+                    goingAroundWithFunc9(func, y, x);
+                    if (bestCountry[0] != -1 && counterOurCountry[0].get() - 1 < regionSmoothingTreshold - counterDifType[0].get()) {
+                        Cell.setRegionOfCell(yxId, otherCountries[bestCountry[0]]);
+                    }
+                }
+            }
+        }    //ourBlocks < 4 - water
     }
 
 
@@ -498,6 +554,136 @@ public class Generator {
             }
         } while (thereSmthToDo);
 
+        float halfy = sizeY / 2;
+        for (int i = 0; i < landRegions; ++i) {
+            float crioDist = inBetweenTwoFloats(terrainTypes[2].minMinEquatorDistance, terrainTypes[2].maxMinEquatorDistance);
+            float rastFromEquator = abs((Region.landRegions[i].center.y - halfy) / halfy);
+            if (rastFromEquator >= crioDist) {
+                Region.landRegions[i].deepness = TerrainType.SNOW;
+            } else {
+                //Check if beach
+                boolean water = false;
+                for (BorderWithRegion bord : Region.landRegions[i].borders) {
+                    if (regions[bord.neighbourId].type == WATER) {
+                        for (BorderWithRegion watBord : regions[bord.neighbourId].borders) {
+                            if (regions[watBord.neighbourId].deepness > 0) {
+                                water = true;
+                                break;
+                            }
+                        }
+                        if (water)
+                            break;
+                    }
+                }
+                if (water) {
+                    Region.landRegions[i].deepness = TerrainType.BEACH;
+                } else {
+                    if (Region.landRegions[i].deepness == PLANE) {
+                        boolean cycleEnd = false;
+                        int type = 0;
+                        int amount = 0;
+                        for (int curType = TerrainType.SPAWNABLETYPES; curType < terrainTypes.length; ++curType) {
+                            float minEquat = inBetweenTwoFloats(terrainTypes[curType].minMinEquatorDistance, terrainTypes[curType].maxMinEquatorDistance);
+                            float maxEquat = inBetweenTwoFloats(terrainTypes[curType].minMaxEquatorDistance, terrainTypes[curType].maxMaxEquatorDistance);
+                            amount = inBetweenTwoInts(terrainTypes[curType].minSize, terrainTypes[curType].maxSize);
+                            if (rastFromEquator >= minEquat && rastFromEquator <= maxEquat && new Random().nextInt(100) < terrainTypes[curType].chanceToSpawn) {
+                                type = -curType - 1;
+                                break;
+                            }
+                        }
+                        if (type == 0)
+                            continue;
+                        else if (type < -10) {
+                            MainActivity.Debug("Something isn't right...");
+                        } else if (type > 10) {
+                            MainActivity.Debug("Something isn't right...");
+                        }
+                        Region.landRegions[i].deepness = type;
+                        final int chance = 10;
+                        ArrayList<Region> regs = new ArrayList<Region>();
+                        for (BorderWithRegion r : Region.landRegions[i].borders) {
+
+                            Region reg = regions[r.neighbourId];
+                            if (reg.deepness == PLANE) {
+                                regs.add(reg);
+                            }
+                        }
+                        if (regs.size() != 0) {
+                            while (true) {
+                                ArrayList<Region> regionsForFuture = new ArrayList<>();
+                                for (ListIterator<Region> it = regs.listIterator(); it.hasNext(); ) {
+                                    boolean doIt = true;
+                                    if (new Random().nextInt(100) < chance) {
+                                        Region actualThing = it.next();
+                                        it.previous();
+                                        actualThing.deepness = type;
+                                        for (BorderWithRegion r : actualThing.borders) {
+                                            Region reg = regions[r.neighbourId];
+                                            if (reg.deepness == PLANE) {
+                                                regionsForFuture.add(reg);
+                                            }
+                                        }
+                                        Iterator<Region> saveIt = it;
+                                        if (!it.hasPrevious()) {
+                                            doIt = false;
+                                            if (it.hasNext())
+                                                it.next();
+                                        } else {
+                                            it.previous();
+                                        }
+                                        saveIt.remove();
+                                        amount--;
+                                        if (regs.size() == 0 || amount <= 0) {
+                                            cycleEnd = true;
+                                            break;
+                                        }
+
+                                    }
+                                    if (doIt) {
+                                        it.next();
+                                    }
+                                }
+                                if (cycleEnd)
+                                    break;
+                                regs.addAll(regionsForFuture);
+                            }
+                        }
+                        if (cycleEnd)
+                            continue;
+                    }
+                }
+            }
+        }
+
+        for (int cyc = 0; cyc < terrainTypeSmoothingCycles; ++cyc) {
+            for (int i = 0; i < landRegions; ++i) {
+                TerrainType terType = TerrainType.getTerrainTypeByDeepness(Region.landRegions[i].deepness);
+                if (!terType.canBeSmoothed)
+                    continue;
+                int[] types = new int[terrainTypes.length];
+                int max = 0;
+                int tprt = -1;
+                int allBorders = Region.landRegions[i].borders.size();
+                for (BorderWithRegion bord : Region.landRegions[i].borders) {
+                    Region nei = regions[bord.neighbourId];
+                    if (nei.type != LAND) {
+                        allBorders--;
+                    } else {
+                        int cur = -nei.deepness - 1;
+                        if (++types[cur] > max && (terrainTypes[cur].canSmoothOthers || cur == -Region.landRegions[i].deepness - 1)) {
+                            tprt = cur;
+                            max = types[cur];
+                        }
+                    }
+                }
+                if (tprt == -1)
+                    continue;
+                if (types[-Region.landRegions[i].deepness - 1] / (float) allBorders < terType.smoothingTreshold) {
+                    Region.landRegions[i].deepness = -tprt - 1;
+                }
+            }
+        }
+
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -514,7 +700,7 @@ public class Generator {
         AddMissingRegions(sizeY, sizeX, regionSeeds);
 
         MainActivity.Debug("Smoothing regions");
-        SmoothRegions();
+        SmoothRegions(sizeY, sizeX);
 
         MainActivity.Debug("Creating region data");
         CreateRegionData(sizeY, sizeX, regionSeeds);

@@ -7,6 +7,7 @@ import androidx.annotation.RequiresApi;
 
 //Terrain description
 public class TerrainType {
+    public static final int PLANE = -1, BEACH = -2, SNOW = -3, SPAWNABLETYPES = 3;
     public static TerrainType[] terrainTypes = new TerrainType[]{
             new TerrainType(    //PLANE (everything is PLANE by default)
                     1,    //Chance To Spawn (0-100)
