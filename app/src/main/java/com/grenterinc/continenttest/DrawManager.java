@@ -3,7 +3,7 @@ package com.grenterinc.continenttest;
 import android.graphics.Color;
 import android.os.Build;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Stack;
 
 import androidx.annotation.RequiresApi;
@@ -22,7 +22,7 @@ public class DrawManager {
     public static int drawType = DRAW_TERRAIN;
     public static Stack<Point> cellsForUpdate = new Stack<Point>();
     public static Stack<Region> regionsForUpdate = new Stack<Region>();
-    public static Stack<ArrayList<BorderCell>> borderForUpdate = new Stack<ArrayList<BorderCell>>();
+    public static Stack<LinkedList<BorderCell>> borderForUpdate = new Stack<LinkedList<BorderCell>>();
     public static boolean updateAll = false, drawBorders = true;
     public static int horizontalOffset = 0;
     public static int debugColor = Color.RED, riverColor = Color.rgb(0.25f, 0.25f, 1f),
@@ -109,7 +109,7 @@ public class DrawManager {
                 MyDrawer.singelton.invalidate();
             }
             while (!borderForUpdate.empty()) {
-                ArrayList<BorderCell> bord = borderForUpdate.pop();
+                LinkedList<BorderCell> bord = borderForUpdate.pop();
                 for (BorderCell point : bord) {
                     drawCell(point.x, point.y, sizeX);
                 }

@@ -2,7 +2,7 @@ package com.grenterinc.continenttest;
 
 import android.os.Build;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -17,7 +17,7 @@ import static com.grenterinc.continenttest.Region.regions;
 import static com.grenterinc.continenttest.TerrainType.getTerrainTypeByDeepness;
 
 public class BorderWithRegion {
-    public ArrayList<BorderCell> cells = new ArrayList<BorderCell>();
+    public LinkedList<BorderCell> cells = new LinkedList<BorderCell>();
     public int regionId, neighbourId;
 
     public boolean riverHere = false;

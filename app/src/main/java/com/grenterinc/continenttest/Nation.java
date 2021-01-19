@@ -2,7 +2,7 @@ package com.grenterinc.continenttest;
 
 import android.os.Build;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 import androidx.annotation.RequiresApi;
 
@@ -12,7 +12,7 @@ import static com.grenterinc.continenttest.DrawManager.regionsForUpdate;
 import static com.grenterinc.continenttest.Std.inBetweenTwoFloats;
 
 public class Nation {
-    public ArrayList<Region> regions = new ArrayList<Region>();
+    public LinkedList<Region> regions = new LinkedList<Region>();
     public float colorR, colorG, colorB;
     public float livabilityTreshold = 2.6f;
 

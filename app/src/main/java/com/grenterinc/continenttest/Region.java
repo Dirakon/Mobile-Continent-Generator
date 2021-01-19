@@ -1,15 +1,15 @@
 package com.grenterinc.continenttest;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class Region {
     public static Region[] regions;
-    public static Region[] landRegions;
+    public static Region[] landRegions;     // Exists because most of the time you need only land regions
     public Nation father = null;
     public Point l, r, u, d;
     public Point center;
-    public ArrayList<Point> cells = new ArrayList<Point>();
-    public ArrayList<BorderWithRegion> borders = new ArrayList<BorderWithRegion>();
+    public LinkedList<Point> cells = new LinkedList<Point>();
+    public LinkedList<BorderWithRegion> borders = new LinkedList<BorderWithRegion>();
     public float colorR, colorG, colorB;
     public int type = Cell.WATER;
     public int deepness = -2;

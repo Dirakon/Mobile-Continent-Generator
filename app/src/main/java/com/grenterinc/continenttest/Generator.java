@@ -3,7 +3,7 @@ package com.grenterinc.continenttest;
 import android.os.Build;
 import android.util.MutableInt;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Random;
@@ -112,7 +112,7 @@ public class Generator {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
-    static private void GrowSeeds(ArrayList<Point> seedsList, GenerationInniter inniter, MutableInt newAgePtr, int sizeY, int sizeX) {
+    static private void GrowSeeds(LinkedList<Point> seedsList, GenerationInniter inniter, MutableInt newAgePtr, int sizeY, int sizeX) {
         BiFunction<Integer, Integer, Boolean> boolIfOther = (Integer cell, Integer whoAdded) -> {
             return Cell.getTypeOfCell(cell) == inniter.typeToTransformFrom;
         };
@@ -143,7 +143,7 @@ public class Generator {
         }
     }
 
-    static private void PlaceSeeds(ArrayList<Point> seedsList, GenerationInniter inniter) {
+    static private void PlaceSeeds(LinkedList<Point> seedsList, GenerationInniter inniter) {
 
         int continentSeeds = inBetweenTwoInts(inniter.minSeeds, inniter.maxSeeds);
 
@@ -275,7 +275,7 @@ public class Generator {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    static private void PlaceRegionSeeds(int sizeY, int sizeX, MutableInt newAgePtr, ArrayList<Point> regionSeeds) {
+    static private void PlaceRegionSeeds(int sizeY, int sizeX, MutableInt newAgePtr, LinkedList<Point> regionSeeds) {
         int toSkip = (int) (sqrt(sizeX * sizeY) * amountOfRegionsProcent);
         for (int y = toSkip; y < sizeY; y += toSkip) {
             for (int x = toSkip; x < sizeX; x += toSkip) {
@@ -300,7 +300,7 @@ public class Generator {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    static private void GrowingRegionSeeds(MutableInt newAgePtr, ArrayList<Point> regionSeeds) {
+    static private void GrowingRegionSeeds(MutableInt newAgePtr, LinkedList<Point> regionSeeds) {
         BiFunction<Integer, Integer, Boolean> checkFunc = (Integer thisCell, Integer whoAdded) -> {
             return whoAdded == -1 || (Cell.getTypeOfCell(whoAdded) == Cell.getTypeOfCell(thisCell) && Cell.getRegionOfCell(thisCell) == -1);
         };
@@ -316,7 +316,7 @@ public class Generator {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    static private void AddMissingRegions(int sizeY, int sizeX, ArrayList<Point> regionSeeds) {
+    static private void AddMissingRegions(int sizeY, int sizeX, LinkedList<Point> regionSeeds) {
         for (int y = 0; y < sizeY; ++y) {
             for (int x = 0; x < sizeX; ++x) {
                 int yxId = Cell.getIdByCoords(y, x);
@@ -397,7 +397,7 @@ public class Generator {
 
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    static private void CreateRegionData(int sizeY, int sizeX, ArrayList<Point> regionSeeds) {
+    static private void CreateRegionData(int sizeY, int sizeX, LinkedList<Point> regionSeeds) {
         MainActivity.Debug("Before creating region stuff...");
         int regionAmount = regionSeeds.size();
         regions = new Region[regionAmount];
@@ -600,7 +600,7 @@ public class Generator {
                         }
                         Region.landRegions[i].deepness = type;
                         final int chance = 10;
-                        ArrayList<Region> regs = new ArrayList<Region>();
+                        LinkedList<Region> regs = new LinkedList<Region>();
                         for (BorderWithRegion r : Region.landRegions[i].borders) {
 
                             Region reg = regions[r.neighbourId];
@@ -610,7 +610,7 @@ public class Generator {
                         }
                         if (regs.size() != 0) {
                             while (true) {
-                                ArrayList<Region> regionsForFuture = new ArrayList<>();
+                                LinkedList<Region> regionsForFuture = new LinkedList<>();
                                 for (ListIterator<Region> it = regs.listIterator(); it.hasNext(); ) {
                                     boolean doIt = true;
                                     if (new Random().nextInt(100) < chance) {
@@ -690,7 +690,7 @@ public class Generator {
     private static void DivideIntoRegions(int sizeY, int sizeX, MutableInt newAgePtr) {
 
         MainActivity.Debug("Placing region seeds...");
-        ArrayList<Point> regionSeeds = new ArrayList<Point>();
+        LinkedList<Point> regionSeeds = new LinkedList<Point>();
         PlaceRegionSeeds(sizeY, sizeX, newAgePtr, regionSeeds);
 
         MainActivity.Debug("Growing region seeds...");
@@ -707,7 +707,7 @@ public class Generator {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    public static void Generate(int sizeY, int sizeX, ArrayList<GenerationInniter> generationInniters) {
+    public static void Generate(int sizeY, int sizeX, LinkedList<GenerationInniter> generationInniters) {
 
         MainActivity.Debug("\n\n\n-------------------WORLD CREATION: START-------------------\n");
 
@@ -729,7 +729,7 @@ public class Generator {
 
         int counter = 0;
         for (GenerationInniter inniter : generationInniters) {
-            ArrayList<Point> seeds = new ArrayList<Point>();
+            LinkedList<Point> seeds = new LinkedList<Point>();
             MainActivity.Debug("Placing seeds #" + counter + "...\n");
             PlaceSeeds(seeds, inniter);
             MainActivity.Debug("Growing seeds #" + counter++ + "...\n");

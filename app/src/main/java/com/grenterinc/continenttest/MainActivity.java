@@ -12,7 +12,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.RequiresApi;
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             public void onClick(View v) {
-                ArrayList<Generator.GenerationInniter> sampleData = new ArrayList<Generator.GenerationInniter>();
+                LinkedList<Generator.GenerationInniter> sampleData = new LinkedList<Generator.GenerationInniter>();
                 sampleData.add(new Generator.GenerationInniter(defminContinentSeeds, defmaxContinentSeeds, defminContinentProcent, defmaxContinentProcent, WATER, LAND)); //WATER -> LAND (continents)
                 sampleData.add(new Generator.GenerationInniter(defminLakeSeeds, defmaxLakeSeeds, defminLakeProcent, defmaxLakeProcent, LAND, WATER)); //LAND->WATER (lakes)
                 sampleData.add(new Generator.GenerationInniter(defminIslandSeeds, defmaxIslandSeeds, defminIslandProcent, defmaxIslandProcent, WATER, LAND)); //WATER->LAND (islands)
