@@ -3,8 +3,10 @@ package com.grenterinc.continenttest;
 import android.os.Build;
 import android.util.MutableInt;
 
-import java.util.LinkedList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Random;
 import java.util.Stack;
@@ -21,6 +23,7 @@ import static com.grenterinc.continenttest.Region.regions;
 import static com.grenterinc.continenttest.Std.inBetweenTwoFloats;
 import static com.grenterinc.continenttest.Std.inBetweenTwoInts;
 import static com.grenterinc.continenttest.TerrainType.PLANE;
+import static com.grenterinc.continenttest.TerrainType.getTerrainTypeByDeepness;
 import static com.grenterinc.continenttest.TerrainType.terrainTypes;
 import static java.lang.Math.sqrt;
 import static java.lang.StrictMath.abs;
@@ -178,7 +181,7 @@ public class Generator {
 
         clearPTRs(newAgePtr, sizeY, sizeX);
 
-        MainActivity.Debug("Smoothing mapping...\n");
+
         for (int y = 0; y < sizeY; ++y) {
             for (int x = 0; x < sizeX; ++x) {
 
@@ -212,7 +215,7 @@ public class Generator {
                 }
             }
         }
-        MainActivity.Debug("Actual smoothing...\n");
+
         while (newAgePtr.value != 0) {
 
             //Pick a random cell
@@ -395,167 +398,68 @@ public class Generator {
         }    //ourBlocks < 4 - water
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    static private void CreateRivers(int sizeY, int sizeX) {
+        LinkedList<BorderWithRegion> riverSeeds = new LinkedList<BorderWithRegion>();
+        int riverPTR = 0;
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    static private void CreateRegionData(int sizeY, int sizeX, LinkedList<Point> regionSeeds) {
-        MainActivity.Debug("Before creating region stuff...");
-        int regionAmount = regionSeeds.size();
-        regions = new Region[regionAmount];
-        for (int i = 0; i < regionAmount; ++i)
-            regions[i] = new Region();
-        MainActivity.Debug("After creating region stuff...");
-        for (int y = 0; y < sizeY; ++y) {
-            for (int x = 0; x < sizeX; ++x) {
-                int yxId = Cell.getIdByCoords(y, x);
-                int regionId = Cell.getRegionOfCell(yxId);
-                if (regions[regionId].d == null) {
-                    regions[regionId].d = regions[regionId].l = regions[regionId].u = regions[regionId].r = new Point(x, y);
-                } else {
-                    if (y < regions[regionId].d.y) {
-                        regions[regionId].d = new Point(x, y);
-                    }
-                    if (y > regions[regionId].u.y) {
-                        regions[regionId].u = new Point(x, y);
-                    }
-                    if (regions[regionId].r.x > 0) {
-                        if (x < regions[regionId].l.x) {
-                            regions[regionId].l = new Point(x, y);
-                        }
-                        if (x > regions[regionId].r.x) {
-                            regions[regionId].r = new Point(x, y);
-                        }
-                    }
-                }
-                if ((x == 0 || x == sizeX - 1) && regions[regionId].r.x >= 0) {
-                    regions[regionId].l.x = Integer.MAX_VALUE;
-                    regions[regionId].r.x = Integer.MIN_VALUE;
-                }
-            }
-        }
-        MainActivity.Debug("After creating region stuff 2...");
-        int landRegions = 0;
+        for (int i = 0; i < Region.landRegions.length; ++i) {
+            if (getTerrainTypeByDeepness(Region.landRegions[i].deepness).canRiverSpawn && (new Random().nextInt(100) < chanceForLandToBeRiverSpawn)) {
+                for (BorderWithRegion bord : Region.landRegions[i].borders) {
 
-        for (int i = 0; i < regionAmount; ++i) {
-            if (regions[i].r.x == -1) {
-                //THIS REGION HAS NO LAND! (maybe because of smoothing, happens...)
-                Region[] newRegs = new Region[regionAmount - 1];
-                for (int j = 0; j < i; ++j) {
-                    newRegs[j] = regions[i];
-                }
-                for (int j = i + 1; j < regionAmount; ++j) {
-                    newRegs[j - 1] = regions[i];
-                }
-                regionAmount--;
-                regions = newRegs;
-                --i;
-                continue;
-            }
-            int y = regions[i].u.y;
-            int x = regions[i].u.x;
-            int thisRegionsCellId = Cell.getIdByCoords(y, x);
-            if (Cell.getTypeOfCell(thisRegionsCellId) == LAND) {
-                regions[i].deepness++;
-                regions[i].type = LAND;
-                landRegions++;
-            }
-        }
-        MainActivity.Debug("After creating region stuff 3...");
-        int lrPTR = 0;
-        Region.landRegions = new Region[landRegions];
-        boolean[] unmappableRegions = new boolean[regionAmount];
-        for (int i = 0; i < regionAmount; ++i) {
-            if (regions[i].type == LAND) {
-                Region.landRegions[lrPTR++] = regions[i];
-            }
-            unmappableRegions[i] = regions[i].r.x < 0;
-        }
-        int half = sizeX / 2;
-        for (int y = 0; y < sizeY; ++y) {
-            for (int x = half; x < sizeX + half; ++x) {
-                int realX = x % sizeX;
-                int yRealXCellId = Cell.getIdByCoords(y, realX);
-                int regId = Cell.getRegionOfCell(yRealXCellId);
-                AtomicInteger counter = new AtomicInteger();
-                BorderCell diso = new BorderCell(realX, y);
-                BiFunction<Integer, Integer, Void> func = (Integer yf, Integer xf) ->
-                {
-                    int yfXfId = Cell.getIdByCoords(yf, xf);
-                    if (regId != Cell.getRegionOfCell(yfXfId)) {
-                        counter.getAndIncrement();
-                        for (Iterator<BorderWithRegion> p = regions[regId].borders.iterator(); p.hasNext(); ) {
-                            BorderWithRegion borderWithRegion = p.next();
-                            if (borderWithRegion.neighbourId == Cell.getRegionOfCell(yfXfId)) {
-                                if (borderWithRegion.cells.get(borderWithRegion.cells.size() - 1) != diso) {
-                                    Cell.setBorderPartOfCell(yRealXCellId, true);
-                                    borderWithRegion.cells.add(diso);
-                                    counter.getAndIncrement();
-                                }
-                                return null; //already a border
-                            }
-                        }
-                        BorderWithRegion bord = new BorderWithRegion();
-                        bord.regionId = regId;
-                        bord.neighbourId = Cell.getRegionOfCell(yfXfId);
-                        Cell.setBorderPartOfCell(yRealXCellId, true);
-                        bord.cells.add(diso);
-                        regions[regId].borders.add(bord);
-                        counter.getAndIncrement();
+                    if (regions[bord.neighbourId].type == LAND && getTerrainTypeByDeepness(regions[bord.neighbourId].deepness).canRiverSpawn) {
+                        riverSeeds.add(bord);
+                        break;
                     }
-                    return null;
-                };
-                goingAroundWithFunc9(func, y, realX);
-                //Point(realX, y);
-                if (unmappableRegions[regId]) {
-                    if (x < regions[regId].l.x) {
-                        regions[regId].l = new Point(x, y);
-                    }
-                    if (x > regions[regId].r.x) {
-                        regions[regId].r = new Point(x, y);
-                    }
-                }
-                if (counter.get() == 0) {
-                    regions[regId].cells.add(new Point(realX, y));
                 }
             }
         }
 
-//Colors
-        for (int i = 0; i < regionAmount; ++i) {
-            regions[i].center = new Point((regions[i].l.x + regions[i].r.x) / 2, (regions[i].u.y + regions[i].d.y) / 2);
-
-
-            regions[i].l.x %= sizeX;
-            regions[i].r.x %= sizeX;
-            regions[i].center.x %= sizeX;
-
-            //	world[regions[i].center.y][regions[i].center.x].type = world[regions[i].u.y][regions[i].u.x].type = world[regions[i].d.y][regions[i].d.x].type = world[regions[i].l.y][regions[i].l.x].type = world[regions[i].r.y][regions[i].r.x].type = DEBUG_DOT;
-
-            regions[i].colorR = inBetweenTwoFloats(0, 1);
-            regions[i].colorG = inBetweenTwoFloats(0, 1);
-            regions[i].colorB = inBetweenTwoFloats(0, 1);
+        for (BorderWithRegion riv : riverSeeds) {
+            int size = inBetweenTwoInts(minRiverSize, maxRiverSize) - 1;
+            BorderWithRegion next = BorderWithRegion.makeBorderRiver(riv);
+            while (next != null && size > 0) {
+                size--;
+                next = BorderWithRegion.makeBorderRiver(next);
+            }
         }
-        //"Calculating sea deepness...";
-        boolean thereSmthToDo;
-        do {
-            thereSmthToDo = false;
-            for (int i = 0; i < regionAmount; ++i) {
-                if (regions[i].type == WATER) {
-                    int max = regions[i].deepness;
-                    for (Iterator<BorderWithRegion> it = regions[i].borders.iterator(); it.hasNext(); ) {
-                        BorderWithRegion borderWithRegion = it.next();
-                        int realValue = regions[borderWithRegion.neighbourId].deepness;
-                        if (realValue != -2 && (realValue + 1 < max || max == -2)) {
-                            max = realValue + 1;
-                            thereSmthToDo = true;
+
+    }
+
+    static private void SmoothTheTerrain(int sizeY, int sizeX) {
+        for (int cyc = 0; cyc < terrainTypeSmoothingCycles; ++cyc) {
+            for (int i = 0; i < Region.landRegions.length; ++i) {
+                TerrainType terType = getTerrainTypeByDeepness(Region.landRegions[i].deepness);
+                if (!terType.canBeSmoothed)
+                    continue;
+                int[] types = new int[terrainTypes.length];
+                int max = 0;
+                int tprt = -1;
+                int allBorders = Region.landRegions[i].borders.size();
+                for (BorderWithRegion bord : Region.landRegions[i].borders) {
+                    Region nei = regions[bord.neighbourId];
+                    if (nei.type != LAND) {
+                        allBorders--;
+                    } else {
+                        int cur = -nei.deepness - 1;
+                        if (++types[cur] > max && (terrainTypes[cur].canSmoothOthers || cur == -Region.landRegions[i].deepness - 1)) {
+                            tprt = cur;
+                            max = types[cur];
                         }
                     }
-                    regions[i].deepness = max;
+                }
+                if (tprt == -1)
+                    continue;
+                if (types[-Region.landRegions[i].deepness - 1] / (float) allBorders < terType.smoothingTreshold) {
+                    Region.landRegions[i].deepness = -tprt - 1;
                 }
             }
-        } while (thereSmthToDo);
+        }
+    }
 
+    static private void PlaceTerrainTypes(int sizeY, int sizeX) {
         float halfy = sizeY / 2;
-        for (int i = 0; i < landRegions; ++i) {
+        for (int i = 0; i < Region.landRegions.length; ++i) {
             float crioDist = inBetweenTwoFloats(terrainTypes[2].minMinEquatorDistance, terrainTypes[2].maxMinEquatorDistance);
             float rastFromEquator = abs((Region.landRegions[i].center.y - halfy) / halfy);
             if (rastFromEquator >= crioDist) {
@@ -593,11 +497,7 @@ public class Generator {
                         }
                         if (type == 0)
                             continue;
-                        else if (type < -10) {
-                            MainActivity.Debug("Something isn't right...");
-                        } else if (type > 10) {
-                            MainActivity.Debug("Something isn't right...");
-                        }
+
                         Region.landRegions[i].deepness = type;
                         final int chance = 10;
                         LinkedList<Region> regs = new LinkedList<Region>();
@@ -654,36 +554,200 @@ public class Generator {
                 }
             }
         }
+    }
 
-        for (int cyc = 0; cyc < terrainTypeSmoothingCycles; ++cyc) {
-            for (int i = 0; i < landRegions; ++i) {
-                TerrainType terType = TerrainType.getTerrainTypeByDeepness(Region.landRegions[i].deepness);
-                if (!terType.canBeSmoothed)
-                    continue;
-                int[] types = new int[terrainTypes.length];
-                int max = 0;
-                int tprt = -1;
-                int allBorders = Region.landRegions[i].borders.size();
-                for (BorderWithRegion bord : Region.landRegions[i].borders) {
-                    Region nei = regions[bord.neighbourId];
-                    if (nei.type != LAND) {
-                        allBorders--;
-                    } else {
-                        int cur = -nei.deepness - 1;
-                        if (++types[cur] > max && (terrainTypes[cur].canSmoothOthers || cur == -Region.landRegions[i].deepness - 1)) {
-                            tprt = cur;
-                            max = types[cur];
+    static private void CalculateSeaDeepness(int sizeY, int sizeX) {
+        boolean thereSmthToDo;
+        do {
+            thereSmthToDo = false;
+            for (Region region : regions) {
+                if (region.type == WATER) {
+                    int max = region.deepness;
+                    for (BorderWithRegion borderWithRegion : region.borders) {
+                        int realValue = regions[borderWithRegion.neighbourId].deepness;
+                        if (realValue != -2 && (realValue + 1 < max || max == -2)) {
+                            max = realValue + 1;
+                            thereSmthToDo = true;
+                        }
+                    }
+                    region.deepness = max;
+                }
+            }
+        } while (thereSmthToDo);
+    }
+
+    static private void AssignRandomColorsToRegions(int sizeY, int sizeX) {
+        for (Region region : regions) {
+            region.center = new Point((region.l.x + region.r.x) / 2, (region.u.y + region.d.y) / 2);
+
+
+            region.l.x %= sizeX;
+            region.r.x %= sizeX;
+            region.center.x %= sizeX;
+
+
+            region.colorR = inBetweenTwoFloats(0, 1);
+            region.colorG = inBetweenTwoFloats(0, 1);
+            region.colorB = inBetweenTwoFloats(0, 1);
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    static private void CreateBasicRegionData(int sizeY, int sizeX, LinkedList<Point> regionSeeds) {
+        int regionAmount = regionSeeds.size();
+        regions = new Region[regionAmount];
+        for (int i = 0; i < regionAmount; ++i)
+            regions[i] = new Region();
+
+        for (int y = 0; y < sizeY; ++y) {
+            for (int x = 0; x < sizeX; ++x) {
+                int yxId = Cell.getIdByCoords(y, x);
+                int regionId = Cell.getRegionOfCell(yxId);
+                if (regions[regionId].d == null) {
+                    regions[regionId].d = regions[regionId].l = regions[regionId].u = regions[regionId].r = new Point(x, y);
+                } else {
+                    if (y < regions[regionId].d.y) {
+                        regions[regionId].d = new Point(x, y);
+                    }
+                    if (y > regions[regionId].u.y) {
+                        regions[regionId].u = new Point(x, y);
+                    }
+                    if (regions[regionId].r.x > 0) {
+                        if (x < regions[regionId].l.x) {
+                            regions[regionId].l = new Point(x, y);
+                        }
+                        if (x > regions[regionId].r.x) {
+                            regions[regionId].r = new Point(x, y);
                         }
                     }
                 }
-                if (tprt == -1)
-                    continue;
-                if (types[-Region.landRegions[i].deepness - 1] / (float) allBorders < terType.smoothingTreshold) {
-                    Region.landRegions[i].deepness = -tprt - 1;
+                if ((x == 0 || x == sizeX - 1) && regions[regionId].r.x >= 0) {
+                    regions[regionId].l.x = Integer.MAX_VALUE;
+                    regions[regionId].r.x = Integer.MIN_VALUE;
                 }
             }
         }
+        int landRegions = 0;
 
+        for (int i = 0; i < regionAmount; ++i) {
+            if (regions[i].r.x == -1) {
+                //THIS REGION HAS NO LAND! (maybe because of smoothing, happens...)
+                Region[] newRegs = new Region[regionAmount - 1];
+                for (int j = 0; j < i; ++j) {
+                    newRegs[j] = regions[i];
+                }
+                for (int j = i + 1; j < regionAmount; ++j) {
+                    newRegs[j - 1] = regions[i];
+                }
+                regionAmount--;
+                regions = newRegs;
+                --i;
+                continue;
+            }
+            int y = regions[i].u.y;
+            int x = regions[i].u.x;
+            int thisRegionsCellId = Cell.getIdByCoords(y, x);
+            if (Cell.getTypeOfCell(thisRegionsCellId) == LAND) {
+                regions[i].deepness++;
+                regions[i].type = LAND;
+                landRegions++;
+            }
+        }
+        int lrPTR = 0;
+        Region.landRegions = new Region[landRegions];
+        boolean[] unmappableRegions = new boolean[regionAmount];
+        for (int i = 0; i < regionAmount; ++i) {
+            if (regions[i].type == LAND) {
+                Region.landRegions[lrPTR++] = regions[i];
+            }
+            unmappableRegions[i] = regions[i].r.x < 0;
+        }
+        int half = sizeX / 2;
+        for (int y = 0; y < sizeY; ++y) {
+            for (int x = half; x < sizeX + half; ++x) {
+                int realX = x % sizeX;
+                int yRealXCellId = Cell.getIdByCoords(y, realX);
+                int regId = Cell.getRegionOfCell(yRealXCellId);
+                AtomicInteger counter = new AtomicInteger();
+                BorderCell diso = new BorderCell(realX, y);
+                BiFunction<Integer, Integer, Void> func = (Integer yf, Integer xf) ->
+                {
+                    int yfXfId = Cell.getIdByCoords(yf, xf);
+                    if (regId != Cell.getRegionOfCell(yfXfId)) {
+                        counter.getAndIncrement();
+                        for (BorderWithRegion borderWithRegion : regions[regId].borders) {
+                            if (borderWithRegion.neighbourId == Cell.getRegionOfCell(yfXfId)) {
+                                if (borderWithRegion.cells.get(borderWithRegion.cells.size() - 1) != diso) {
+                                    Cell.setBorderPartOfCell(yRealXCellId, true);
+                                    borderWithRegion.cells.add(diso);
+                                    counter.getAndIncrement();
+                                }
+                                return null; //already a border
+                            }
+                        }
+                        BorderWithRegion bord = new BorderWithRegion();
+                        bord.regionId = regId;
+                        bord.neighbourId = Cell.getRegionOfCell(yfXfId);
+                        Cell.setBorderPartOfCell(yRealXCellId, true);
+                        bord.cells.add(diso);
+                        regions[regId].borders.add(bord);
+                        counter.getAndIncrement();
+                    }
+                    return null;
+                };
+                goingAroundWithFunc9(func, y, realX);
+                //Point(realX, y);
+                if (unmappableRegions[regId]) {
+                    if (x < regions[regId].l.x) {
+                        regions[regId].l = new Point(x, y);
+                    }
+                    if (x > regions[regId].r.x) {
+                        regions[regId].r = new Point(x, y);
+                    }
+                }
+                if (counter.get() == 0) {
+                    regions[regId].cells.add(new Point(realX, y));
+                }
+            }
+        }
+    }
+
+    static private void AnalyzeRegionsLivability(int sizeY, int sizeX) {
+        for (Region reg : Region.landRegions) {
+            TerrainType terrainType = reg.getTerrainType();
+            reg.livability = terrainType.livability + (reg.hasRiver ? terrainType.riverLivabilityIncrease : 0);
+        }
+        Arrays.sort(Region.landRegions, new Comparator<Region>() {
+            @Override
+            public int compare(Region o1, Region o2) {
+                return -Float.compare(o1.livability, o2.livability);
+            }
+        });
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static private void CreateRegionData(int sizeY, int sizeX, LinkedList<Point> regionSeeds) {
+
+        MainActivity.Debug("Creating basic regional data...\n");
+        CreateBasicRegionData(sizeY, sizeX, regionSeeds);
+
+        MainActivity.Debug("Assigning random colors to regions...\n");
+        AssignRandomColorsToRegions(sizeY, sizeX);
+
+        MainActivity.Debug("Calculating sea deepness...\n");
+        CalculateSeaDeepness(sizeY, sizeX);
+
+        MainActivity.Debug("Placing the terrain types...\n");
+        PlaceTerrainTypes(sizeY, sizeX);
+
+        MainActivity.Debug("Smoothing the terrain types...\n");
+        SmoothTheTerrain(sizeY, sizeX);
+
+        MainActivity.Debug("Making rivers...\n");
+        CreateRivers(sizeY, sizeX);
+
+        MainActivity.Debug("Calculating the livability of regions...\n");
+        AnalyzeRegionsLivability(sizeY, sizeX);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -704,6 +768,15 @@ public class Generator {
 
         MainActivity.Debug("Creating region data");
         CreateRegionData(sizeY, sizeX, regionSeeds);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static void CreateCountries() {
+        Nation.nations = new LinkedList<Nation>();
+        Nation first = new Nation();
+        Nation.nations.add(first);
+        first.annex(Region.landRegions[0]);
+        DrawManager.regionsForUpdate.add(first.regions.get(0));
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -737,6 +810,7 @@ public class Generator {
         }
         Smoothing(newAgePtr, sizeY, sizeX);
         DivideIntoRegions(sizeY, sizeX, newAgePtr);
+        CreateCountries();
     }
 
 

@@ -62,8 +62,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         setContentView(R.layout.activity_main);
-        final Button button = findViewById(R.id.button);
-        button.setOnClickListener(new View.OnClickListener() {
+        final Button generationButton = findViewById(R.id.generateButton);
+        generationButton.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             public void onClick(View v) {
                 LinkedList<Generator.GenerationInniter> sampleData = new LinkedList<Generator.GenerationInniter>();
@@ -75,7 +75,14 @@ public class MainActivity extends AppCompatActivity {
                 // Code here executes on main thread after user presses button
             }
         });
-
+        final Button changeMapModeButton = findViewById(R.id.changeMapModeButton);
+        changeMapModeButton.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            public void onClick(View v) {
+                DrawManager.drawType = (DrawManager.drawType + 1) % 3;
+                DrawManager.updateAll = true;
+            }
+        });
         Log.d("MAN", "man,activated");
     }
 }

@@ -15,7 +15,7 @@ public class Nation {
     public LinkedList<Region> regions = new LinkedList<Region>();
     public float colorR, colorG, colorB;
     public float livabilityTreshold = 2.6f;
-
+    public static LinkedList<Nation> nations;
     public Nation() {
 
         //Set random colors

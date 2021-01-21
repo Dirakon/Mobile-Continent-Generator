@@ -15,4 +15,8 @@ public class Region {
     public int deepness = -2;
     public boolean hasRiver = false;
     public float livability;
+
+    public TerrainType getTerrainType() {
+        return TerrainType.getTerrainTypeByDeepness(deepness);
+    }
 }
