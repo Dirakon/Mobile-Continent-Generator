@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     float defminContinentProcent = 0.005f, defmaxContinentProcent = 0.1f; //0...1, but obvously even 0.5 is TOO HUGE.
     int defminIslandSeeds = 1, defmaxIslandSeeds = 75; //Whatever.
     float defminIslandProcent = 0.00001f, defmaxIslandProcent = 0.0005f; //0...1, but obvously even 0.5 is TOO HUGE.
-    int defminLakeSeeds = 25, defmaxLakeSeeds = 100; //Whatever. But lakes are really important for world to look cool, better have at least some.
+    int defminLakeSeeds = 0, defmaxLakeSeeds = 20; //Whatever. But lakes are really important for world to look cool, better have at least some.
     float defminLakeProcent = 0.0001f, defmaxLakeProcent = 0.001f; //0...1, but obvously even 0.5 is TOO HUGE.
     private int sizeY, sizeX;
 

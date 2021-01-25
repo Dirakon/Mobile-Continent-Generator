@@ -40,6 +40,8 @@ public class Generator {
     private static final int regionSmoothingTreshold = 4; //1...7, but recommended to leave at 4.
     private static final int chanceForLandToBeRiverSpawn = 10;
     private static final int minRiverSize = 4, maxRiverSize = 18; //
+    private static final float minWaterMassPerDeformation = 0.0002f, maxWaterMassPerDeformation = 0.015f;
+    private static final float chanceForDeformationToAppear = 0.002f;
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     static private void AddToAllArrays(int x, int y, MutableInt ptr,
@@ -116,6 +118,8 @@ public class Generator {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     static private void GrowSeeds(LinkedList<Point> seedsList, GenerationInniter inniter, MutableInt newAgePtr, int sizeY, int sizeX) {
+
+
         BiFunction<Integer, Integer, Boolean> boolIfOther = (Integer cell, Integer whoAdded) -> {
             return Cell.getTypeOfCell(cell) == inniter.typeToTransformFrom;
         };
@@ -146,6 +150,7 @@ public class Generator {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     static private void PlaceSeeds(LinkedList<Point> seedsList, GenerationInniter inniter) {
 
         int continentSeeds = inBetweenTwoInts(inniter.minSeeds, inniter.maxSeeds);
@@ -153,22 +158,53 @@ public class Generator {
         //Inserts <continentSeeds> random points that fit the description in <inniter> into <seedsList>
 
         // WARNING! Will be an infinite loops if there are no cells (or few) that fit the description
+        if (inniter.isDeformation) {
+            //LAND DEFORMATION UP AHEAD!
+            for (int y = 0; y < Cell.sizeY; ++y) {
+                for (int x = 0; x < Cell.sizeX; ++x) {
+                    if (Std.inBetweenTwoFloats(0, 1) < chanceForDeformationToAppear) {
+                        int id = Cell.getIdByCoords(y, x);
+                        if (Cell.getTypeOfCell(id) == LAND) {
+                            AtomicReference<Integer> counterRef = new AtomicReference<Integer>(0);
 
-        for (int i = 0; i < continentSeeds; ++i) {
-            int y, x;
-            int ider;
-            do {
-                y = new Random().nextInt(Cell.sizeY);
-                x = new Random().nextInt(Cell.sizeX);
-                ider = Cell.getIdByCoords(y, x);
-            } while (Cell.getTypeOfCell(ider) == inniter.typeToTransformInto);
-            Cell.setTypeOfCell(ider, inniter.typeToTransformInto);
-            Point p = new Point();
-            p.y = y;
-            p.x = x;
-            seedsList.add(p);
+                            //Counter of cells with different types.
+                            BiFunction<Integer, Integer, Void> func = (Integer yf, Integer xf) -> {
+                                int ider = Cell.getIdByCoords(yf, xf);
+                                if (Cell.getTypeOfCell(ider) != LAND) {
+                                    counterRef.set(counterRef.get() + 1);
+                                }
+                                return null;
+                            };
+
+                            // Actually count different cells
+                            Cell.goingAroundWithFunc9(func, y, x);
+
+                            // If there are different cells, we add this cell to seed list
+                            if (counterRef.get() > 0) {
+                                seedsList.add(new Point(x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+
+        } else {
+            for (int i = 0; i < continentSeeds; ++i) {
+                int y, x;
+                int ider;
+                do {
+                    y = new Random().nextInt(Cell.sizeY);
+                    x = new Random().nextInt(Cell.sizeX);
+                    ider = Cell.getIdByCoords(y, x);
+                } while (Cell.getTypeOfCell(ider) == inniter.typeToTransformInto);
+                Cell.setTypeOfCell(ider, inniter.typeToTransformInto);
+                Point p = new Point();
+                p.y = y;
+                p.x = x;
+                seedsList.add(p);
+            }
         }
-
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -800,6 +836,17 @@ public class Generator {
         MutableInt newAgePtr = new MutableInt(0);
         GenerationBufferData.initGenerationBufferData(sizeY, sizeX);
 
+        //Inserting inniter before last (last being islands, inserted one being land deformation)
+        GenerationInniter last = generationInniters.getLast();
+        generationInniters.removeLast();
+        GenerationInniter preLast = generationInniters.getLast();
+        generationInniters.removeLast();
+        generationInniters.add(new GenerationInniter(-1, -1, minWaterMassPerDeformation, maxWaterMassPerDeformation, LAND, WATER));
+        generationInniters.getLast().isDeformation = true;
+        generationInniters.add(preLast);
+        generationInniters.add(last);
+
+
         int counter = 0;
         for (GenerationInniter inniter : generationInniters) {
             LinkedList<Point> seeds = new LinkedList<Point>();
@@ -818,7 +865,7 @@ public class Generator {
         public int minSeeds, maxSeeds;
         public float minProc, maxProc;
         public int typeToTransformInto, typeToTransformFrom;
-
+        public boolean isDeformation = false;
         GenerationInniter(int minSeeds, int maxSeeds, float minProc, float maxProc, int typeToTransformFrom, int typeToTransformInto) {
             this.minSeeds = minSeeds;
             this.maxSeeds = maxSeeds;
