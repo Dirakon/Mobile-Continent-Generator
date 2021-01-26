@@ -80,26 +80,41 @@ public class DrawManager {
                     drawCell(x, y, sizeX);
                 }
             }
+            MainActivity.Debug("UpdateAll");
             MyDrawer.singelton.invalidate();
         } else {
+            boolean invalidated = false;
             while (!cellsForUpdate.empty()) {
                 Point point = cellsForUpdate.pop();
                 drawCell(point.x, point.y, sizeX);
-                MyDrawer.singelton.invalidate();
+                if (!invalidated) {
+                    MainActivity.Debug("emptyCells");
+                    MyDrawer.singelton.invalidate();
+                    invalidated = true;
+                }
+
             }
             while (!regionsForUpdate.empty()) {
                 Region reg = regionsForUpdate.pop();
                 for (Point point : reg.cells) {
                     drawCell(point.x, point.y, sizeX);
                 }
-                MyDrawer.singelton.invalidate();
+                if (!invalidated) {
+                    MainActivity.Debug("emptyRegions");
+                    MyDrawer.singelton.invalidate();
+                    invalidated = true;
+                }
             }
             while (!borderForUpdate.empty()) {
                 LinkedList<BorderCell> bord = borderForUpdate.pop();
                 for (BorderCell point : bord) {
                     drawCell(point.x, point.y, sizeX);
                 }
-                MyDrawer.singelton.invalidate();
+                if (!invalidated) {
+                    MainActivity.Debug("emptyBorders");
+                    MyDrawer.singelton.invalidate();
+                    invalidated = true;
+                }
             }
         }
     }

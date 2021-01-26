@@ -496,98 +496,81 @@ public class Generator {
     static private void PlaceTerrainTypes(int sizeY, int sizeX) {
         float halfy = sizeY / 2;
         for (int i = 0; i < Region.landRegions.length; ++i) {
-            float crioDist = inBetweenTwoFloats(terrainTypes[2].minMinEquatorDistance, terrainTypes[2].maxMinEquatorDistance);
+            float crioDist = inBetweenTwoFloats(terrainTypes[1].minMinEquatorDistance, terrainTypes[1].maxMinEquatorDistance);
             float rastFromEquator = abs((Region.landRegions[i].center.y - halfy) / halfy);
             if (rastFromEquator >= crioDist) {
                 Region.landRegions[i].deepness = TerrainType.SNOW;
             } else {
-                //Check if beach
-                boolean water = false;
-                for (BorderWithRegion bord : Region.landRegions[i].borders) {
-                    if (regions[bord.neighbourId].type == WATER) {
-                        for (BorderWithRegion watBord : regions[bord.neighbourId].borders) {
-                            if (regions[watBord.neighbourId].deepness > 0) {
-                                water = true;
-                                break;
-                            }
-                        }
-                        if (water)
+                if (Region.landRegions[i].deepness == PLANE) {
+                    boolean cycleEnd = false;
+                    int type = 0;
+                    int amount = 0;
+                    for (int curType = TerrainType.SPAWNABLETYPES; curType < terrainTypes.length; ++curType) {
+                        float minEquat = inBetweenTwoFloats(terrainTypes[curType].minMinEquatorDistance, terrainTypes[curType].maxMinEquatorDistance);
+                        float maxEquat = inBetweenTwoFloats(terrainTypes[curType].minMaxEquatorDistance, terrainTypes[curType].maxMaxEquatorDistance);
+                        amount = inBetweenTwoInts(terrainTypes[curType].minSize, terrainTypes[curType].maxSize);
+                        if (rastFromEquator >= minEquat && rastFromEquator <= maxEquat && new Random().nextInt(100) < terrainTypes[curType].chanceToSpawn) {
+                            type = -curType - 1;
                             break;
+                        }
                     }
-                }
-                if (water) {
-                    Region.landRegions[i].deepness = TerrainType.BEACH;
-                } else {
-                    if (Region.landRegions[i].deepness == PLANE) {
-                        boolean cycleEnd = false;
-                        int type = 0;
-                        int amount = 0;
-                        for (int curType = TerrainType.SPAWNABLETYPES; curType < terrainTypes.length; ++curType) {
-                            float minEquat = inBetweenTwoFloats(terrainTypes[curType].minMinEquatorDistance, terrainTypes[curType].maxMinEquatorDistance);
-                            float maxEquat = inBetweenTwoFloats(terrainTypes[curType].minMaxEquatorDistance, terrainTypes[curType].maxMaxEquatorDistance);
-                            amount = inBetweenTwoInts(terrainTypes[curType].minSize, terrainTypes[curType].maxSize);
-                            if (rastFromEquator >= minEquat && rastFromEquator <= maxEquat && new Random().nextInt(100) < terrainTypes[curType].chanceToSpawn) {
-                                type = -curType - 1;
-                                break;
-                            }
-                        }
-                        if (type == 0)
-                            continue;
+                    if (type == 0)
+                        continue;
 
-                        Region.landRegions[i].deepness = type;
-                        final int chance = 10;
-                        LinkedList<Region> regs = new LinkedList<Region>();
-                        for (BorderWithRegion r : Region.landRegions[i].borders) {
+                    Region.landRegions[i].deepness = type;
+                    final int chance = 10;
+                    LinkedList<Region> regs = new LinkedList<Region>();
+                    for (BorderWithRegion r : Region.landRegions[i].borders) {
 
-                            Region reg = regions[r.neighbourId];
-                            if (reg.deepness == PLANE) {
-                                regs.add(reg);
-                            }
+                        Region reg = regions[r.neighbourId];
+                        if (reg.deepness == PLANE) {
+                            regs.add(reg);
                         }
-                        if (regs.size() != 0) {
-                            while (true) {
-                                LinkedList<Region> regionsForFuture = new LinkedList<>();
-                                for (ListIterator<Region> it = regs.listIterator(); it.hasNext(); ) {
-                                    boolean doIt = true;
-                                    if (new Random().nextInt(100) < chance) {
-                                        Region actualThing = it.next();
+                    }
+                    if (regs.size() != 0) {
+                        while (true) {
+                            LinkedList<Region> regionsForFuture = new LinkedList<>();
+                            for (ListIterator<Region> it = regs.listIterator(); it.hasNext(); ) {
+                                boolean doIt = true;
+                                if (new Random().nextInt(100) < chance) {
+                                    Region actualThing = it.next();
+                                    it.previous();
+                                    actualThing.deepness = type;
+                                    for (BorderWithRegion r : actualThing.borders) {
+                                        Region reg = regions[r.neighbourId];
+                                        if (reg.deepness == PLANE) {
+                                            regionsForFuture.add(reg);
+                                        }
+                                    }
+                                    Iterator<Region> saveIt = it;
+                                    if (!it.hasPrevious()) {
+                                        doIt = false;
+                                        if (it.hasNext())
+                                            it.next();
+                                    } else {
                                         it.previous();
-                                        actualThing.deepness = type;
-                                        for (BorderWithRegion r : actualThing.borders) {
-                                            Region reg = regions[r.neighbourId];
-                                            if (reg.deepness == PLANE) {
-                                                regionsForFuture.add(reg);
-                                            }
-                                        }
-                                        Iterator<Region> saveIt = it;
-                                        if (!it.hasPrevious()) {
-                                            doIt = false;
-                                            if (it.hasNext())
-                                                it.next();
-                                        } else {
-                                            it.previous();
-                                        }
-                                        saveIt.remove();
-                                        amount--;
-                                        if (regs.size() == 0 || amount <= 0) {
-                                            cycleEnd = true;
-                                            break;
-                                        }
+                                    }
+                                    saveIt.remove();
+                                    amount--;
+                                    if (regs.size() == 0 || amount <= 0) {
+                                        cycleEnd = true;
+                                        break;
+                                    }
 
-                                    }
-                                    if (doIt) {
-                                        it.next();
-                                    }
                                 }
-                                if (cycleEnd)
-                                    break;
-                                regs.addAll(regionsForFuture);
+                                if (doIt) {
+                                    it.next();
+                                }
                             }
+                            if (cycleEnd)
+                                break;
+                            regs.addAll(regionsForFuture);
                         }
-                        if (cycleEnd)
-                            continue;
                     }
+                    if (cycleEnd)
+                        continue;
                 }
+
             }
         }
     }
@@ -866,6 +849,7 @@ public class Generator {
         public float minProc, maxProc;
         public int typeToTransformInto, typeToTransformFrom;
         public boolean isDeformation = false;
+
         GenerationInniter(int minSeeds, int maxSeeds, float minProc, float maxProc, int typeToTransformFrom, int typeToTransformInto) {
             this.minSeeds = minSeeds;
             this.maxSeeds = maxSeeds;

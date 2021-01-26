@@ -7,7 +7,7 @@ import androidx.annotation.RequiresApi;
 
 //Terrain description
 public class TerrainType {
-    public static final int PLANE = -1, BEACH = -2, SNOW = -3, SPAWNABLETYPES = 3;
+    public static final int PLANE = -1, SNOW = -2, SPAWNABLETYPES = 2;
     public static TerrainType[] terrainTypes = new TerrainType[]{
             new TerrainType(    //PLANE (everything is PLANE by default)
                     1,    //Chance To Spawn (0-100)
@@ -26,24 +26,7 @@ public class TerrainType {
                     1,    //river livability increase
                     "Planes"    //name
             ),
-            new TerrainType(    //BEACH (spawns in special way)
 
-                    100,    //Chance To Spawn (0-100)
-                    1,    //Min Size (in regions)
-                    1,//Max Size (in regions)
-                    true, //Can river appear in this region
-                    false,//Can this region become different in terrain smoothing
-                    false,//Can others become this in terrain smoothing
-                    0.5f,//if (excluding water) at least that part of neighbouring regions is the same, don't change - else change;
-                    0,    //min MINIMAL distance from equator
-                    0,  //max MINIMAL distance from equator
-                    0,    //min MAXIMAL distance from equator
-                    0,  //max MAXIMAL distance from equator
-                    3, //livablity
-                    1, 1, 0.2f, //rgb
-                    0.4f,    //river livability increase
-                    "Beach"    //name
-            ),
             new TerrainType(    //ARCTIC (spawns in special way)
                     100,    //Chance To Spawn (0-100)
                     1,    //Min Size (in regions)
